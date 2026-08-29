@@ -104,7 +104,7 @@ def get_task(task_id: int):
         "done": bool(row[2])
     }
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=201, summary="Create a task")
 async def create_task(data: dict):
     if "title" not in data or not data["title"]:
         return JSONResponse(
@@ -112,17 +112,29 @@ async def create_task(data: dict):
             content={"error": "Title is required"}
         )
 
-    new_id = max(task["id"] for task in tasks) + 1
+    conn = sqlite3.connect(DB_NAME)
 
-    new_task = {
-        "id": new_id,
-        "title": data["title"],
-        "done": False
+    cursor = conn.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        (data["title"], 0)
+    )
+
+    task_id = cursor.lastrowid
+
+    conn.commit()
+
+    row = conn.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (task_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return {
+        "id": row[0],
+        "title": row[1],
+        "done": bool(row[2])
     }
-
-    tasks.append(new_task)
-
-    return new_task
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, data: dict):
