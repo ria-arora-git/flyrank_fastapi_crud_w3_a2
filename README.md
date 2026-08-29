@@ -55,3 +55,13 @@ http://localhost:8000/docs
 ## Swagger UI
 
 ![Swagger UI](swagger.png)# flyrank_fastapi_crud_w3_a2
+
+
+
+## SQLite Query Example
+
+The query `UPDATE tasks SET done = 1;` returned 
+"Execution finished without errors.
+Result: query executed successfully. Took 0ms, 3 rows affected
+At line 1:
+UPDATE tasks SET done = 1;"
