@@ -56,7 +56,13 @@ http://localhost:8000/docs
 
 ![Swagger UI](swagger.png)# flyrank_fastapi_crud_w3_a2
 
+## SQLite Database
 
+SQLite was chosen because it is a single file, requires zero setup, and survives restarts.
+
+The database is stored in `tasks.db`. It is created automatically and is git-ignored so each clone starts fresh.
+
+The project uses Python's built-in `sqlite3` library, so no additional SQLite package is required.
 
 ## SQLite Query Example
 
@@ -65,3 +71,10 @@ The query `UPDATE tasks SET done = 1;` returned
 Result: query executed successfully. Took 0ms, 3 rows affected
 At line 1:
 UPDATE tasks SET done = 1;"
+
+## Database Screenshot
+
+![Database](database.png)
+
+## How to start the app
+uvicorn main:app --reload
