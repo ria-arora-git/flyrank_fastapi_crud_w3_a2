@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header
 from fastapi.responses import JSONResponse
 import sqlite3
 import os
@@ -118,6 +118,29 @@ async def login(data: dict):
         "access_token": response.session.access_token,
         "refresh_token": response.session.refresh_token
     }
+
+@app.get("/public/info", summary="Public info, no auth required")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+
+@app.get("/protected/profile", summary="Get the logged-in user's profile")
+def get_profile(authorization: str | None = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+
+    token = authorization.split(" ")[1] if len(authorization.split(" ")) > 1 else ""
+
+    if not token:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+    
+    return {"message": "token was provided (not verified yet)"}
 
 @app.get("/", summary="Get API information")
 def root():
