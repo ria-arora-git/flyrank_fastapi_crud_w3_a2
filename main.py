@@ -66,6 +66,59 @@ tasks = [
     }
 ]
 
+@app.post("/auth/signup", status_code=201, summary="Create a new user account")
+async def signup(data: dict):
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Email and password are required"}
+        )
+
+    try:
+        response = supabase.auth.sign_up({"email": email, "password": password})
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"error": str(e)}
+        )
+
+    return {
+        "user": {
+            "id": response.user.id,
+            "email": response.user.email
+        }
+    }
+
+
+@app.post("/auth/login", summary="Authenticate and return a JWT")
+async def login(data: dict):
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Email and password are required"}
+        )
+
+    try:
+        response = supabase.auth.sign_in_with_password(
+            {"email": email, "password": password}
+        )
+    except Exception:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Invalid login credentials"}
+        )
+
+    return {
+        "access_token": response.session.access_token,
+        "refresh_token": response.session.refresh_token
+    }
+
 @app.get("/", summary="Get API information")
 def root():
     return {
