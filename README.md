@@ -1,6 +1,22 @@
-# Task API
+# Task API - with Auth
 
-A small CRUD API that manages a to-do list, built with Python and FastAPI as part of the FlyRank Backend Track Week 2 assignment.
+A CRUD API for managing a to-do list, secured with Supabase Auth (sign up, log in, log out, protected routes), built with Python and FastAPI. FlyRank Backend Track - Assignments A1, A2, A4.
+
+## Setup
+
+### 1. Create a Supabase project
+
+Create a free Supabase project at https://supabase.com/ and copy your **Project URL** and **anon key** from **Project Settings → API**.
+
+### 2. Set up environment variables
+
+Copy `.env.example` to `.env` and fill in your real values:
+
+    cp .env.example .env
+
+### 3. Disable email confirmation for testing
+
+In your Supabase Dashboard, go to **Authentication → Sign In / Providers → Email** and turn off **Confirm email** for testing only.
 
 ## How to Run
 
@@ -14,7 +30,7 @@ A small CRUD API that manages a to-do list, built with Python and FastAPI as par
 
 ### 3. Install dependencies
 
-    pip install fastapi uvicorn
+    pip install fastapi uvicorn python-dotenv supabase
 
 ### 4. Start the server
 
@@ -28,33 +44,35 @@ Swagger UI is available at:
 
 http://localhost:8000/docs
 
-## Endpoints
+## API Reference
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/` | Get API information |
-| GET | `/health` | Check API health |
-| GET | `/tasks` | Get all tasks |
-| GET | `/tasks/{task_id}` | Get a specific task |
-| POST | `/tasks` | Create a new task |
-| PUT | `/tasks/{task_id}` | Update a task |
-| DELETE | `/tasks/{task_id}` | Delete a task |
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| POST | `/auth/signup` | Create a new user account | No |
+| POST | `/auth/login` | Authenticate and return a JWT | No |
+| POST | `/auth/logout` | End the user's session | Yes (Bearer) |
+| GET | `/public/info` | Public, open data | No |
+| GET | `/protected/profile` | Read the logged-in user's profile | Yes (Bearer) |
+| GET | `/protected/dashboard` | Second example protected route | Yes (Bearer) |
+| GET | `/tasks` | Get all tasks | No |
+| GET | `/tasks/{task_id}` | Get a specific task | No |
+| POST | `/tasks` | Create a task | No |
+| PUT | `/tasks/{task_id}` | Update a task | No |
+| DELETE | `/tasks/{task_id}` | Delete a task | No |
 
-## Example curl Output
+## Auth Flow
 
-    curl -i http://localhost:8000/tasks/1
+1. `POST /auth/signup` with `{"email": "...", "password": "..."}` → `201`
 
-    HTTP/1.1 200 OK
-    date: Wed, 26 Aug 2026 07:53:38 GMT
-    server: uvicorn
-    content-length: 44
-    content-type: application/json
+2. `POST /auth/login` with the same body → `200`, returns `access_token` and `refresh_token`
 
-    {"id":1,"title":"Read the doc","done":false}
+3. Send the access token as `Authorization: Bearer <token>` to any `/protected/*` route or `/auth/logout`
+
+4. An invalid, tampered, or expired token → `401` with `{"error": "..."}`
 
 ## Swagger UI
 
-![Swagger UI](swagger.png)# flyrank_fastapi_crud_w3_a2
+![Swagger](swagger-new.png)
 
 ## SQLite Database
 
@@ -66,15 +84,25 @@ The project uses Python's built-in `sqlite3` library, so no additional SQLite pa
 
 ## SQLite Query Example
 
-The query `UPDATE tasks SET done = 1;` returned 
-"Execution finished without errors.
-Result: query executed successfully. Took 0ms, 3 rows affected
-At line 1:
-UPDATE tasks SET done = 1;"
+The query `UPDATE tasks SET done = 1;` returned:
+
+> Execution finished without errors.
+>
+> Result: query executed successfully. Took 0ms, 3 rows affected
+>
+> At line 1:
+>
+> `UPDATE tasks SET done = 1;`
 
 ## Database Screenshot
 
 ![Database](database.png)
 
-## How to start the app
-uvicorn main:app --reload
+
+## Swagger Screenshot after Authorization
+
+![Swagger with Authorize](swagger-auth.png)
+
+## How to Start the App
+
+    uvicorn main:app --reload
