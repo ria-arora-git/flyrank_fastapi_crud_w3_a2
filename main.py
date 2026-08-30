@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 import sqlite3
 import os
@@ -15,6 +16,13 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 print("Server running and connected to Supabase")
 
 app = FastAPI()
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail}
+    )
 
 DB_NAME = "tasks.db"
 
@@ -66,6 +74,25 @@ tasks = [
     }
 ]
 
+security = HTTPBearer(auto_error=False)
+
+def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Access token required")
+
+    token = credentials.credentials
+
+    try:
+        response = supabase.auth.get_user(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return user
+
 @app.post("/auth/signup", status_code=201, summary="Create a new user account")
 async def signup(data: dict):
     email = data.get("email")
@@ -91,7 +118,6 @@ async def signup(data: dict):
             "email": response.user.email
         }
     }
-
 
 @app.post("/auth/login", summary="Authenticate and return a JWT")
 async def login(data: dict):
@@ -125,41 +151,21 @@ def public_info():
 
 
 @app.get("/protected/profile", summary="Get the logged-in user's profile")
-def get_profile(authorization: str | None = Header(default=None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Access token required"}
-        )
-
-    token = authorization.split(" ")[1] if len(authorization.split(" ")) > 1 else ""
-
-    if not token:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Access token required"}
-        )
-
-    try:
-        response = supabase.auth.get_user(token)
-    except Exception:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Invalid or expired token"}
-        )
-
-    user = response.user
-    if not user:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Invalid or expired token"}
-        )
-
+def get_profile(user=Depends(get_current_user)):
     return {
         "id": user.id,
         "email": user.email,
         "created_at": str(user.created_at)
     }
+
+@app.post("/auth/logout", status_code=204, summary="Log out the current user")
+def logout(user=Depends(get_current_user)):
+    supabase.auth.sign_out()
+    return
+
+@app.get("/protected/dashboard", summary="Example second protected route, reuses the same guard")
+def get_dashboard(user=Depends(get_current_user)):
+    return {"message": f"Welcome to your dashboard, {user.email}"}
 
 @app.get("/", summary="Get API information")
 def root():
